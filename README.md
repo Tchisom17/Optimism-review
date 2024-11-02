@@ -130,13 +130,13 @@
       function execute(uint32 insn, uint32 rs, uint32 rt, uint32 mem) internal pure returns (uint32 out);
       ```
 
----
-
 #### Observations
 
 - **Merkle Proof Integration**: Utilizes binary-Merkle-trees for memory integrity, which ensures consistency in memory state by validating each read and write operation.
 - **Comprehensive MIPS Emulation**: The contract effectively emulates MIPS instruction sets, handling arithmetic, branching, and memory operations.
-- **Oracle Dependence**: Requires `IPreimageOracle` to manage memory preimages and perform preimage proofs during syscall handling, supporting complex memory interactions securely1
+- **Oracle Dependence**: Requires `IPreimageOracle` to manage memory preimages and perform preimage proofs during syscall handling, supporting complex memory interactions securely.
+
+---
 
 ### 2. **IPreimageOracle (IPreimageOracle.sol)**
 
@@ -205,81 +205,6 @@
 - **Data Isolation**: Uses identifiers and localized keys to isolate data access per caller.
 - **Hashing Support**: Provides keccak256 and sha256 hashing options for retrieving preimages.
 - **KZG Proofs**: Integrates polynomial commitments and KZG proofs, enhancing compatibility with zero-knowledge systems.
-
----
-
-
-
-#### File Overview
-- **SPDX-License-Identifier**: MIT
-- **Solidity Version**: 0.8.15
-- **Contract**: `MIPS`
-- **Purpose**: Emulates MIPS instruction processing, managing state, branching, and syscall handling, using binary-Merkle-trees for memory proofing, and interfacing with a preimage oracle.
-
-#### Key Components and Descriptions
-1. **Struct `State`**
-   - *Description*: Holds the MIPS VM state, including memory, registers, program counters, and more.
-   - **Implementation**:
-     ```solidity
-     struct State {
-         bytes32 memRoot;
-         bytes32 preimageKey;
-         uint32 preimageOffset;
-         uint32 pc;
-         uint32 nextPC;
-         uint32 lo;
-         uint32 hi;
-         uint32 heap;
-         uint8 exitCode;
-         bool exited;
-         uint64 step;
-         uint32[32] registers;
-     }
-     ```
-
-2. **Constants for File Descriptors**
-   - Defines standard I/O constants and error codes, like `FD_STDOUT`, `EBADF`.
-   - *Implementation*:
-     ```solidity
-     uint32 internal constant FD_STDIN = 0;
-     uint32 internal constant FD_STDOUT = 1;
-     uint32 internal constant FD_STDERR = 2;
-     uint32 internal constant FD_HINT_READ = 3;
-     uint32 internal constant FD_HINT_WRITE = 4;
-     uint32 internal constant FD_PREIMAGE_READ = 5;
-     uint32 internal constant FD_PREIMAGE_WRITE = 6;
-     ```
-
-3. **`constructor(IPreimageOracle _oracle)`**
-   - Initializes with an oracle for preimage management.
-   - **Implementation**:
-     ```solidity
-     constructor(IPreimageOracle _oracle) {
-         ORACLE = _oracle;
-     }
-     ```
-
-4. **Key Functions**
-   - **`outputState()`**: Computes a hash of the VM state.
-     ```solidity
-     function outputState() internal returns (bytes32 out_);
-     ```
-
-   - **`handleSyscall(bytes32 _localContext)`**: Processes syscalls, including read, write, and memory-mapped I/O.
-     ```solidity
-     function handleSyscall(bytes32 _localContext) internal returns (bytes32 out_);
-     ```
-
-   - **`handleBranch` and `handleJump`**: Executes conditional and unconditional branching.
-     ```solidity
-     function handleBranch(uint32 _opcode, uint32 _insn, uint32 _rtReg, uint32 _rs) internal returns (bytes32 out_);
-     function handleJump(uint32 _linkReg, uint32 _dest) internal returns (bytes32 out_);
-     ```
-
-#### Observations
-- **Merkle Proof Integration**: Uses Merkle-trees for memory integrity.
-- **MIPS ISA Emulation**: Emulates MIPS ISA with branching, syscalls, and state hashing.
-- **Oracle Integration**: Dependence on `IPreimageOracle` for preimage retrieval.
 
 ---
 
