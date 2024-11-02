@@ -1,6 +1,8 @@
 # Optimism-review
 
-Following the format provided, here is a structured overview and analysis of each file:
+---
+
+### Contract Review
 
 ---
 
@@ -13,32 +15,65 @@ Following the format provided, here is a structured overview and analysis of eac
 - **Purpose**: This interface defines methods for managing and accessing preimages in an oracle system, enabling storage and retrieval of preimage data.
 
 #### Key Functions and Descriptions
-- **`readPreimage(bytes32 _key, uint256 _offset)`**:
-  - *Description*: Retrieves a preimage based on a specified key and offset. Returns the preimage data and its length.
-  - *Parameters*: `_key`, `_offset`
-  - *Returns*: `dat_`, `datLen_`
+1. **`readPreimage(bytes32 _key, uint256 _offset)`**
+   - *Description*: Retrieves a preimage based on a specified key and offset. Returns the preimage data and its length.
+   - *Parameters*: `_key` (key of the preimage to read), `_offset` (offset for reading the preimage)
+   - *Returns*: `dat_` (preimage data), `datLen_` (length of the data)
+   - **Implementation**:
+     ```solidity
+     function readPreimage(bytes32 _key, uint256 _offset) external view returns (bytes32 dat_, uint256 datLen_);
+     ```
 
-- **`loadLocalData(uint256 _ident, bytes32 _localContext, bytes32 _word, uint256 _size, uint256 _partOffset)`**:
-  - *Description*: Loads local data to the oracle based on an identifier and context, allowing data isolation per caller.
-  - *Parameters*: `_ident`, `_localContext`, `_word`, `_size`, `_partOffset`
-  - *Returns*: `key_`
+2. **`loadLocalData(uint256 _ident, bytes32 _localContext, bytes32 _word, uint256 _size, uint256 _partOffset)`**
+   - *Description*: Loads local data to the oracle based on an identifier and context, allowing data isolation per caller.
+   - *Parameters*: `_ident` (data identifier), `_localContext` (context key), `_word` (data word), `_size` (size in bytes), `_partOffset` (offset for loading)
+   - *Returns*: `key_` (the resulting key)
+   - **Implementation**:
+     ```solidity
+     function loadLocalData(
+         uint256 _ident,
+         bytes32 _localContext,
+         bytes32 _word,
+         uint256 _size,
+         uint256 _partOffset
+     ) external returns (bytes32 key_);
+     ```
 
-- **`loadKeccak256PreimagePart` and `loadSha256PreimagePart`**:
-  - *Description*: These functions load segments of preimage data hashed with either keccak256 or sha256 algorithms.
-  - *Parameters*: `_partOffset`, `_preimage`
+3. **`loadKeccak256PreimagePart` and `loadSha256PreimagePart`**
+   - *Description*: These functions load segments of preimage data hashed with either keccak256 or sha256 algorithms.
+   - *Parameters*: `_partOffset` (offset to load), `_preimage` (the data)
+   - **Implementation**:
+     ```solidity
+     function loadKeccak256PreimagePart(uint256 _partOffset, bytes calldata _preimage) external;
+     function loadSha256PreimagePart(uint256 _partOffset, bytes calldata _preimage) external;
+     ```
 
-- **`loadBlobPreimagePart`**:
-  - *Description*: Allows loading of a preimage using a KZG proof and polynomial commitments, useful for zero-knowledge commitments.
-  - *Parameters*: `_z`, `_y`, `_commitment`, `_proof`, `_partOffset`
+4. **`loadBlobPreimagePart`**
+   - *Description*: Loads a preimage using a KZG proof and polynomial commitments, useful for zero-knowledge commitments.
+   - *Parameters*: `_z` (point value), `_y` (preimage), `_commitment` (polynomial commitment), `_proof` (KZG proof), `_partOffset` (offset for storage)
+   - **Implementation**:
+     ```solidity
+     function loadBlobPreimagePart(
+         uint256 _z,
+         uint256 _y,
+         bytes calldata _commitment,
+         bytes calldata _proof,
+         uint256 _partOffset
+     ) external;
+     ```
 
-- **`loadPrecompilePreimagePart`**:
-  - *Description*: Manages preimages tied to precompile results, with an offset, precompile address, and input data.
-  - *Parameters*: `_partOffset`, `_precompile`, `_input`
+5. **`loadPrecompilePreimagePart`**
+   - *Description*: Manages preimages tied to precompile results, with an offset, precompile address, and input data.
+   - *Parameters*: `_partOffset`, `_precompile`, `_input`
+   - **Implementation**:
+     ```solidity
+     function loadPrecompilePreimagePart(uint256 _partOffset, address _precompile, bytes calldata _input) external;
+     ```
 
 #### Observations
-- **Data Isolation**: Uses unique identifiers and localized keys to restrict data access per caller.
-- **Hashing Support**: Supports keccak256 and sha256 hash-based retrieval, enhancing compatibility with cryptographic primitives.
-- **KZG Proofs**: Incorporates polynomial commitments and KZG proofs, enabling use in zero-knowledge protocols.
+- **Data Isolation**: Uses identifiers and localized keys to isolate data access per caller.
+- **Hashing Support**: Provides keccak256 and sha256 hashing options for retrieving preimages.
+- **KZG Proofs**: Integrates polynomial commitments and KZG proofs, enhancing compatibility with zero-knowledge systems.
 
 ---
 
@@ -48,30 +83,72 @@ Following the format provided, here is a structured overview and analysis of eac
 - **SPDX-License-Identifier**: MIT
 - **Solidity Version**: 0.8.15
 - **Contract**: `MIPS`
-- **Purpose**: Emulates MIPS instruction processing, including state management, branching, and syscall handling. It uses binary-Merkle-tree structures for memory proofing and interfaces with a preimage oracle.
+- **Purpose**: Emulates MIPS instruction processing, managing state, branching, and syscall handling, using binary-Merkle-trees for memory proofing, and interfacing with a preimage oracle.
 
 #### Key Components and Descriptions
-- **Struct `State`**:
-  - *Description*: Holds the MIPS VM state, including memory, registers, and program counters.
-  - *Fields*: `memRoot`, `preimageKey`, `registers`, etc.
+1. **Struct `State`**
+   - *Description*: Holds the MIPS VM state, including memory, registers, program counters, and more.
+   - **Implementation**:
+     ```solidity
+     struct State {
+         bytes32 memRoot;
+         bytes32 preimageKey;
+         uint32 preimageOffset;
+         uint32 pc;
+         uint32 nextPC;
+         uint32 lo;
+         uint32 hi;
+         uint32 heap;
+         uint8 exitCode;
+         bool exited;
+         uint64 step;
+         uint32[32] registers;
+     }
+     ```
 
-- **Constants and File Descriptors**:
-  - Defines constants for standard input/output and specific error codes (e.g., `EBADF`, `EINVAL`).
-  - *Purpose*: Supports Linux-like syscall interaction.
+2. **Constants for File Descriptors**
+   - Defines standard I/O constants and error codes, like `FD_STDOUT`, `EBADF`.
+   - *Implementation*:
+     ```solidity
+     uint32 internal constant FD_STDIN = 0;
+     uint32 internal constant FD_STDOUT = 1;
+     uint32 internal constant FD_STDERR = 2;
+     uint32 internal constant FD_HINT_READ = 3;
+     uint32 internal constant FD_HINT_WRITE = 4;
+     uint32 internal constant FD_PREIMAGE_READ = 5;
+     uint32 internal constant FD_PREIMAGE_WRITE = 6;
+     ```
 
-- **`constructor(IPreimageOracle _oracle)`**:
-  - Initializes the contract with a preimage oracle for memory access.
+3. **`constructor(IPreimageOracle _oracle)`**
+   - Initializes with an oracle for preimage management.
+   - **Implementation**:
+     ```solidity
+     constructor(IPreimageOracle _oracle) {
+         ORACLE = _oracle;
+     }
+     ```
 
-- **Key Functions**
-  - **`outputState()`**: Computes a hash of the VM state for tracking or verification.
-  - **`handleSyscall(bytes32 _localContext)`**: Manages syscall operations, with interactions for read, write, memory-mapped I/O, and control over VM state.
-  - **`handleBranch` and `handleJump`**: Executes conditional or unconditional branching, adjusting program counters as per MIPS ISA.
-  - **`writeMem` and `readMem`**: Proof-based memory operations, using Merkle proofs to validate memory integrity.
+4. **Key Functions**
+   - **`outputState()`**: Computes a hash of the VM state.
+     ```solidity
+     function outputState() internal returns (bytes32 out_);
+     ```
+
+   - **`handleSyscall(bytes32 _localContext)`**: Processes syscalls, including read, write, and memory-mapped I/O.
+     ```solidity
+     function handleSyscall(bytes32 _localContext) internal returns (bytes32 out_);
+     ```
+
+   - **`handleBranch` and `handleJump`**: Executes conditional and unconditional branching.
+     ```solidity
+     function handleBranch(uint32 _opcode, uint32 _insn, uint32 _rtReg, uint32 _rs) internal returns (bytes32 out_);
+     function handleJump(uint32 _linkReg, uint32 _dest) internal returns (bytes32 out_);
+     ```
 
 #### Observations
-- **Merkle Proof Integration**: This implementation leverages binary-Merkle-trees for memory verification, enhancing trust in state.
-- **MIPS Compatibility**: Provides a detailed emulation of MIPS operations, including branching and syscalls.
-- **Oracle Dependence**: Relies heavily on the `IPreimageOracle` for preimage retrieval, indicating a high-security application context.
+- **Merkle Proof Integration**: Uses Merkle-trees for memory integrity.
+- **MIPS ISA Emulation**: Emulates MIPS ISA with branching, syscalls, and state hashing.
+- **Oracle Integration**: Dependence on `IPreimageOracle` for preimage retrieval.
 
 ---
 
@@ -81,28 +158,31 @@ Following the format provided, here is a structured overview and analysis of eac
 - **SPDX-License-Identifier**: MIT
 - **Solidity Version**: 0.8.15
 - **Library**: `PreimageKeyLib`
-- **Purpose**: Utility functions for creating and localizing keys for use in the `IPreimageOracle`.
+- **Purpose**: Provides utility functions for generating and localizing keys in the preimage oracle.
 
 #### Key Functions and Descriptions
-- **`localizeIdent(uint256 _ident, bytes32 _localContext)`**:
-  - *Description*: Generates a context-specific key for a local identifier, ensuring caller-specific data isolation.
-  - *Parameters*: `_ident`, `_localContext`
-  - *Returns*: `key_`
+1. **`localizeIdent(uint256 _ident, bytes32 _localContext)`**
+   - Generates a context-specific key for a local identifier.
+   - **Implementation**:
+     ```solidity
+     function localizeIdent(uint256 _ident, bytes32 _localContext) internal view returns (bytes32 key_);
+     ```
 
-- **`localize(bytes32 _key, bytes32 _localContext)`**:
-  - *Description*: Localizes a data key with a caller context by hashing the key, caller address, and context, securing data per user.
-  - *Parameters*: `_key`, `_localContext`
-  - *Returns*: `localizedKey_`
+2. **`localize(bytes32 _key, bytes32 _localContext)`**
+   - Localizes a data key using the caller's address and context.
+   - **Implementation**:
+     ```solidity
+     function localize(bytes32 _key, bytes32 _localContext) internal view returns (bytes32 localizedKey_);
+     ```
 
-- **`keccak256PreimageKey(bytes memory _preimage)`**:
-  - *Description*: Computes a global keccak256-based key for a given preimage, used for consistent keying across contracts.
-  - *Parameters*: `_preimage`
-  - *Returns*: `key_`
+3. **`keccak256PreimageKey(bytes memory _preimage)`**
+   - Computes a globally unique key using keccak256.
+   - **Implementation**:
+     ```solidity
+     function keccak256PreimageKey(bytes memory _preimage) internal pure returns (bytes32 key_);
+     ```
 
-#### Observations
-- **Contextual Keying**: Employs caller and context hashing for secure, isolated data access.
-- **Efficient Hashing**: Uses in-line assembly to minimize gas costs in hashing operations.
-- **Global Key Consistency**: Offers a method for generating globally unique keys using keccak256, standardizing data references across contracts.
+---
 
 ### 4. **ISemver (ISemver.sol)**
 
@@ -110,17 +190,19 @@ Following the format provided, here is a structured overview and analysis of eac
 - **SPDX-License-Identifier**: MIT
 - **Solidity Version**: 0.8.0
 - **Interface**: `ISemver`
-- **Purpose**: This interface defines a standard method for accessing the semantic version of a contract. It ensures that contracts can report their version number, which is useful for off-chain tooling and version control.
+- **Purpose**: Defines a standard method for retrieving the semantic version of a contract.
 
 #### Key Functions and Descriptions
-- **`version()`**:
-  - *Description*: Retrieves the semantic version of the contract in string format.
-  - *Returns*: The version as a `string memory`.
+1. **`version()`**
+   - Retrieves the semantic version in string format, useful for off-chain tooling.
+   - **Implementation**:
+     ```solidity
+     function version() external view returns (string memory);
+     ```
 
 #### Observations
-- **Version Control**: This interface promotes a standard for semantic versioning, helping developers track changes and compatibility between different versions.
-- **Off-Chain Utility**: Primarily intended for use in off-chain tooling, this versioning feature is not necessarily used on-chain but can assist in the deployment pipeline or tooling that relies on contract versions.
-- **Integration with MIPS Contract**: The `MIPS` contract imports `ISemver`, likely implementing this interface to ensure the `MIPS` version is accessible to off-chain tools.
+- **Version Control**: Useful for semantic version tracking in contracts.
+- **Integration with MIPS**: The `MIPS` contract imports `ISemver` to track its version.
 
 ---
 
